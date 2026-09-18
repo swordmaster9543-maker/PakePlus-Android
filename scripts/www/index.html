@@ -1,0 +1,962 @@
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多区域自定义导航页</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    body {
+        background: #1a1d24;
+        color: #fff;
+        padding: 24px;
+        min-height: 100vh;
+    }
+    h1 {
+        font-size: 20px;
+        margin-bottom: 16px;
+    }
+    .setting-trigger{
+        position: fixed;
+        top:14px;
+        right:14px;
+        z-index:99;
+    }
+    .setting-trigger button{
+        padding:8px 12px;
+        border-radius:6px;
+        border:none;
+        background:#3b82f6;
+        color:#fff;
+        cursor:pointer;
+    }
+    .setting-trigger button:hover{
+        background:#2563eb;
+    }
+    .config-panel {
+        position: fixed;
+        top:48px;
+        right:14px;
+        z-index:98;
+        width: 640px;
+        max-width: calc(100vw - 28px);
+        max-height: 85vh;
+        overflow-y: auto;
+        background: #272b34;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 4px 16px #00000070;
+    }
+    .config-panel.hidden{
+        display:none;
+    }
+    .section-title {
+        font-size: 16px;
+        margin: 18px 0 10px;
+        padding-left: 4px;
+        border-left: 4px solid #3b82f6;
+        display:flex;
+        align-items:center;
+        gap:8px;
+    }
+    .area-name-input{
+        background:#1a1d24;
+        color:#fff;
+        border:none;
+        border-radius:4px;
+        padding:2px 6px;
+        font-size:16px;
+        outline:none;
+    }
+    .area-display-name{
+        font-size:18px;
+        margin:10px 0;
+        width:100%;
+    }
+    .area-name-center{
+        text-align:center;
+    }
+    .config-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 8px 0;
+        align-items: center;
+    }
+    label {
+        font-size: 14px;
+        user-select: none;
+    }
+    input[type="number"],
+    input[type="text"] {
+        padding: 6px 8px;
+        border-radius: 4px;
+        border: none;
+        background: #1a1d24;
+        color: #fff;
+        outline: none;
+    }
+    input[type="color"]{
+        width:40px;
+        height:30px;
+        border:none;
+        border-radius:4px;
+        cursor:pointer;
+    }
+    input[type="number"] {
+        width: 72px;
+    }
+    button {
+        padding: 7px 14px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        background: #3b82f6;
+        color: #fff;
+        font-size: 14px;
+    }
+    button:hover {
+        background: #2563eb;
+    }
+    button.danger {
+        background: #ef4444;
+    }
+    button.danger:hover {
+        background: #dc2626;
+    }
+    button.warn {
+        background:#f59e0b;
+    }
+    button.warn:hover {
+        background:#d97706;
+    }
+    button.move-btn{
+        background:#10b981;
+    }
+    button.move-btn:hover{
+        background:#059669;
+    }
+    button.btn-move-sm{
+        padding:2px 6px;
+        font-size:11px;
+        background:#0891b2;
+    }
+    button.btn-move-sm:hover{
+        background:#0e7490;
+    }
+    button.btn-edit-sm{
+        padding:2px 6px;
+        font-size:11px;
+        background:#8b5cf6;
+    }
+    button.btn-edit-sm:hover{
+        background:#7c3aed;
+    }
+    .btn-grid {
+        display: grid;
+        margin-bottom: 28px;
+        width:100%;
+        justify-items: start;
+    }
+    .btn-grid.center-on {
+        justify-content: center;
+    }
+    .btn-grid.center-off {
+        justify-content: start;
+    }
+    .item-wrap{
+        display:flex;
+        flex-direction:column;
+        gap:4px;
+    }
+    .nav-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 15px;
+        transition: background 0.2s, transform 0.15s;
+        text-align: center;
+        padding:10px;
+    }
+    .nav-btn:hover {
+        transform: translateY(-2px);
+    }
+    .del-btn{
+        padding:4px 10px;
+        font-size:12px;
+    }
+    .del-btn.hide-del, .btn-move-sm.hide-del,.btn-edit-sm.hide-del{
+        display:none;
+    }
+    .empty-tip {
+        color: #9ca3af;
+        font-size: 14px;
+        padding: 18px;
+        background: #272b34;
+        border-radius: 8px;
+        text-align: center;
+        width:100%;
+    }
+    .area-config-block{
+        border:1px solid #444954;
+        border-radius:10px;
+        padding:14px;
+        margin:12px 0;
+    }
+    .btn-control-row{
+        display:flex;
+        gap:4px;
+        justify-content:center;
+    }
+    .modal-overlay{
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,0.65);
+        z-index:200;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+    }
+    .modal-overlay.hidden{
+        display:none;
+    }
+    .modal-box{
+        background:#272b34;
+        padding:20px;
+        border-radius:10px;
+        width:90%;
+        max-width:420px;
+    }
+    .modal-box h4{
+        margin-bottom:14px;
+    }
+    .modal-row{
+        margin:10px 0;
+    }
+    .modal-row label{
+        display:block;
+        margin-bottom:4px;
+    }
+    .modal-row input{
+        width:100%;
+    }
+    .modal-buttons{
+        display:flex;
+        gap:10px;
+        margin-top:16px;
+        justify-content:flex-end;
+    }
+    .file-input-hidden{
+        display:none;
+    }
+</style>
+</head>
+<body style="background: rgb(26, 29, 36);">
+    <h1 id="pageMainTitle" style="color: rgb(255, 255, 255);">🏠工件信息</h1>
+    <div class="setting-trigger">
+        <button id="toggleConfigBtn">⚙️ 设置</button>
+    </div>
+    <div class="config-panel" id="configPanel">
+        <div class="section-title">页面顶部标题设置</div>
+        <div class="config-row">
+            <label>标题文字：</label>
+            <input type="text" id="inputPageTitle" placeholder="页面大标题">
+            <label>标题颜色：</label>
+            <input type="color" id="colorPageTitle">
+            <button id="applyPageTitleBtn">应用标题</button>
+        </div>
+        <div class="section-title">全局颜色设置</div>
+        <div class="config-row">
+            <label>页面背景：</label>
+            <input type="color" id="pageBg">
+            <label>按钮背景：</label>
+            <input type="color" id="btnBg">
+            <label>按钮悬浮：</label>
+            <input type="color" id="btnHoverBg">
+            <button onclick="applyGlobalColor()">应用颜色</button>
+        </div>
+        <div class="section-title">全局区域名称设置</div>
+        <div class="config-row">
+            <label>显示区域名称</label>
+            <input type="checkbox" id="showAreaName">
+            <label>区域名称文字居中</label>
+            <input type="checkbox" id="areaNameCenter">
+        </div>
+        <div class="config-row">
+            <button id="toggleDelBtn">⚙️开/关 按钮设置显示</button>
+            <button class="warn" id="addNewAreaBtn">➕ 新增区域</button>
+        </div>
+        <div class="section-title">配置导入导出</div>
+        <div class="config-row">
+            <button id="exportJsonBtn">导出JSON配置</button>
+            <button id="importJsonBtn">导入JSON配置</button>
+            <button class="move-btn" id="exportFullHtmlBtn">导出完整HTML文件</button>
+            <input type="file" id="fileImportInput" accept=".json" class="file-input-hidden">
+        </div>
+        <div id="allAreaConfigWrap"><div class="area-config-block">
+        <div class="section-title">
+            <input type="text" class="area-name-input" data-idx="0" value="查询" placeholder="区域名称">
+        </div>
+        <div class="config-row">
+            <button class="move-btn move-up" data-idx="0">⬆️上移</button>
+            <button class="move-btn move-down" data-idx="0">⬇️下移</button>
+            <label>一行数量：</label>
+            <input type="number" data-idx="0" class="inp-cols" min="1" max="16" value="2">
+            <label>按钮宽度：</label>
+            <input type="number" data-idx="0" class="inp-btnw" min="60" max="500" value="180">
+            <label>按钮高度：</label>
+            <input type="number" data-idx="0" class="inp-btnh" min="40" max="220" value="80">
+            <label>按钮上下间距：</label>
+            <input type="number" data-idx="0" class="inp-rowgap" min="0" max="80" value="14">
+            <label>按钮左右间距：</label>
+            <input type="number" data-idx="0" class="inp-colgap" min="0" max="80" value="80">
+            <label>整体居中</label>
+            <input type="checkbox" data-idx="0" class="inp-center" checked="">
+            <button data-idx="0" class="applyLayoutBtn">应用布局</button>
+            <button data-idx="0" class="danger delAreaBtn">删除此区域</button>
+        </div>
+        <div class="config-row">
+            <input type="text" data-idx="0" class="inp-name" placeholder="按钮名称">
+            <input type="text" data-idx="0" class="inp-url" placeholder="网址 https://xxx" style="width:220px">
+            <button data-idx="0" class="addBtnToArea">添加按钮</button>
+        </div>
+        </div><div class="area-config-block">
+        <div class="section-title">
+            <input type="text" class="area-name-input" data-idx="1" value="货架" placeholder="区域名称">
+        </div>
+        <div class="config-row">
+            <button class="move-btn move-up" data-idx="1">⬆️上移</button>
+            <button class="move-btn move-down" data-idx="1">⬇️下移</button>
+            <label>一行数量：</label>
+            <input type="number" data-idx="1" class="inp-cols" min="1" max="16" value="4">
+            <label>按钮宽度：</label>
+            <input type="number" data-idx="1" class="inp-btnw" min="60" max="500" value="180">
+            <label>按钮高度：</label>
+            <input type="number" data-idx="1" class="inp-btnh" min="40" max="220" value="80">
+            <label>按钮上下间距：</label>
+            <input type="number" data-idx="1" class="inp-rowgap" min="0" max="80" value="14">
+            <label>按钮左右间距：</label>
+            <input type="number" data-idx="1" class="inp-colgap" min="0" max="80" value="14">
+            <label>整体居中</label>
+            <input type="checkbox" data-idx="1" class="inp-center" checked="">
+            <button data-idx="1" class="applyLayoutBtn">应用布局</button>
+            <button data-idx="1" class="danger delAreaBtn">删除此区域</button>
+        </div>
+        <div class="config-row">
+            <input type="text" data-idx="1" class="inp-name" placeholder="按钮名称">
+            <input type="text" data-idx="1" class="inp-url" placeholder="网址 https://xxx" style="width:220px">
+            <button data-idx="1" class="addBtnToArea">添加按钮</button>
+        </div>
+        </div><div class="area-config-block">
+        <div class="section-title">
+            <input type="text" class="area-name-input" data-idx="2" value="摆放区" placeholder="区域名称">
+        </div>
+        <div class="config-row">
+            <button class="move-btn move-up" data-idx="2">⬆️上移</button>
+            <button class="move-btn move-down" data-idx="2">⬇️下移</button>
+            <label>一行数量：</label>
+            <input type="number" data-idx="2" class="inp-cols" min="1" max="16" value="5">
+            <label>按钮宽度：</label>
+            <input type="number" data-idx="2" class="inp-btnw" min="60" max="500" value="180">
+            <label>按钮高度：</label>
+            <input type="number" data-idx="2" class="inp-btnh" min="40" max="220" value="80">
+            <label>按钮上下间距：</label>
+            <input type="number" data-idx="2" class="inp-rowgap" min="0" max="80" value="14">
+            <label>按钮左右间距：</label>
+            <input type="number" data-idx="2" class="inp-colgap" min="0" max="80" value="14">
+            <label>整体居中</label>
+            <input type="checkbox" data-idx="2" class="inp-center" checked="">
+            <button data-idx="2" class="applyLayoutBtn">应用布局</button>
+            <button data-idx="2" class="danger delAreaBtn">删除此区域</button>
+        </div>
+        <div class="config-row">
+            <input type="text" data-idx="2" class="inp-name" placeholder="按钮名称">
+            <input type="text" data-idx="2" class="inp-url" placeholder="网址 https://xxx" style="width:220px">
+            <button data-idx="2" class="addBtnToArea">添加按钮</button>
+        </div>
+        </div></div>
+    </div>
+    <div id="pageRenderWrap"><div id="area_1789740390485"><div class="area-display-name area-name-center">查询</div><div class="btn-grid center-on" style="grid-template-columns: repeat(2, 180px); gap: 14px 80px;"><div class="item-wrap"><a class="nav-btn" href="https://docs.qq.com/smartsheet/DSHVkcWxoUU1NSVRZ" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">工件存放信息表</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://docs.qq.com/smartsheet/query/RFNIVmtjV3hvVVUxTlNWUlovUU5KOERsL3ZLTEFwNQ?tab=QNJ8Dl" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">查询页</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div></div></div><div id="area_0"><div class="area-display-name area-name-center">货架</div><div class="btn-grid center-on" style="grid-template-columns: repeat(4, 180px); gap: 14px;"><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qXXEDuW" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">货架1-3</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qkOchkl" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">货架2-3</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qeLag6K" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">货架3-3</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qBK6u41" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">货架4-3</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qvlbEtO" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">货架1-2</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qxQaZig" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">货架2-2</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qgsZ2HF" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">货架3-2</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qPYDu7V" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">货架4-2</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qHDVIaX" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">货架1-1</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qRKxIFN" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">货架2-1</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qa63oBc" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">货架3-1</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qbbUePd" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">货架4-1</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div></div></div><div id="area_1"><div class="area-display-name area-name-center">摆放区</div><div class="btn-grid center-on" style="grid-template-columns: repeat(5, 180px); gap: 14px;"><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qysh7qL" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">A区</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qUuemd8" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">B区</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qIpTasT" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">C区</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qJlYgRB" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">D区</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div><div class="item-wrap"><a class="nav-btn" href="https://qr61.cn/oIsrU1/qG0DNp7" target="_blank" rel="noopener noreferrer" style="width: 180px; height: 80px; background: rgb(45, 55, 72);">E区</a><div class="btn-control-row"><button class="btn-move-sm btn-up hide-del">↑</button><button class="btn-move-sm btn-down hide-del">↓</button><button class="btn-edit-sm btn-edit hide-del">编辑</button><button class="danger del-btn hide-del">删除</button></div></div></div></div></div>
+    <div class="modal-overlay hidden" id="editModal">
+        <div class="modal-box">
+            <h4>编辑导航按钮</h4>
+            <div class="modal-row">
+                <label>按钮名称</label>
+                <input type="text" id="editBtnName">
+            </div>
+            <div class="modal-row">
+                <label>网址</label>
+                <input type="text" id="editBtnUrl" placeholder="https://xxx.com">
+            </div>
+            <div class="modal-buttons">
+                <button id="modalCancel">取消</button>
+                <button id="modalSave">保存</button>
+            </div>
+        </div>
+    </div>
+<script>
+const STORAGE_KEY = "multi_custom_nav_data_v22";
+const CHN_NUM = ["一","二","三","四","五","六","七","八","九","十"];
+let editState = { areaIdx:null, btnIdx:null };
+let data = {
+  "configVisible": true,
+  "delBtnVisible": false,
+  "showAreaName": true,
+  "areaNameCenter": true,
+  "pageTitle": {
+    "text": "🏠工件信息",
+    "color": "#ffffff"
+  },
+  "globalColor": {
+    "pageBg": "#1a1d24",
+    "btnBg": "#2d3748",
+    "btnHoverBg": "#3b82f6"
+  },
+  "areas": [
+    {
+      "id": "area_1789740390485",
+      "name": "查询",
+      "layout": {
+        "cols": 2,
+        "center": true,
+        "btnWidth": 180,
+        "btnHeight": 80,
+        "rowGap": 14,
+        "colGap": 80
+      },
+      "buttons": [
+        {
+          "name": "工件存放信息表",
+          "url": "https://docs.qq.com/smartsheet/DSHVkcWxoUU1NSVRZ"
+        },
+        {
+          "name": "查询页",
+          "url": "https://docs.qq.com/smartsheet/query/RFNIVmtjV3hvVVUxTlNWUlovUU5KOERsL3ZLTEFwNQ?tab=QNJ8Dl"
+        }
+      ]
+    },
+    {
+      "id": "area_0",
+      "name": "货架",
+      "layout": {
+        "cols": 4,
+        "center": true,
+        "btnWidth": 180,
+        "btnHeight": 80,
+        "rowGap": 14,
+        "colGap": 14
+      },
+      "buttons": [
+        {
+          "name": "货架1-3",
+          "url": "https://qr61.cn/oIsrU1/qXXEDuW"
+        },
+        {
+          "name": "货架2-3",
+          "url": "https://qr61.cn/oIsrU1/qkOchkl"
+        },
+        {
+          "name": "货架3-3",
+          "url": "https://qr61.cn/oIsrU1/qeLag6K"
+        },
+        {
+          "name": "货架4-3",
+          "url": "https://qr61.cn/oIsrU1/qBK6u41"
+        },
+        {
+          "name": "货架1-2",
+          "url": "https://qr61.cn/oIsrU1/qvlbEtO"
+        },
+        {
+          "name": "货架2-2",
+          "url": "https://qr61.cn/oIsrU1/qxQaZig"
+        },
+        {
+          "name": "货架3-2",
+          "url": "https://qr61.cn/oIsrU1/qgsZ2HF"
+        },
+        {
+          "name": "货架4-2",
+          "url": "https://qr61.cn/oIsrU1/qPYDu7V"
+        },
+        {
+          "name": "货架1-1",
+          "url": "https://qr61.cn/oIsrU1/qHDVIaX"
+        },
+        {
+          "name": "货架2-1",
+          "url": "https://qr61.cn/oIsrU1/qRKxIFN"
+        },
+        {
+          "name": "货架3-1",
+          "url": "https://qr61.cn/oIsrU1/qa63oBc"
+        },
+        {
+          "name": "货架4-1",
+          "url": "https://qr61.cn/oIsrU1/qbbUePd"
+        }
+      ]
+    },
+    {
+      "id": "area_1",
+      "name": "摆放区",
+      "layout": {
+        "cols": 5,
+        "center": true,
+        "btnWidth": 180,
+        "btnHeight": 80,
+        "rowGap": 14,
+        "colGap": 14
+      },
+      "buttons": [
+        {
+          "name": "A区",
+          "url": "https://qr61.cn/oIsrU1/qysh7qL"
+        },
+        {
+          "name": "B区",
+          "url": "https://qr61.cn/oIsrU1/qUuemd8"
+        },
+        {
+          "name": "C区",
+          "url": "https://qr61.cn/oIsrU1/qIpTasT"
+        },
+        {
+          "name": "D区",
+          "url": "https://qr61.cn/oIsrU1/qJlYgRB"
+        },
+        {
+          "name": "E区",
+          "url": "https://qr61.cn/oIsrU1/qG0DNp7"
+        }
+      ]
+    }
+  ]
+};
+
+// 下载文件工具函数
+function downloadFile(content, filename, mime){
+    const blob = new Blob([content], {type: mime});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+
+// 导出JSON配置
+function exportJson(){
+    const jsonStr = JSON.stringify(data,null,2);
+    downloadFile(jsonStr,"nav-config.json","application/json");
+}
+
+// 导入JSON配置
+function importJson(file){
+    const reader = new FileReader();
+    reader.onload = function(e){
+        try{
+            const obj = JSON.parse(e.target.result);
+            data = Object.assign(data, obj);
+            save();
+            fullRender();
+            alert("导入成功");
+        }catch(err){
+            alert("文件解析失败");
+        }
+    }
+    reader.readAsText(file);
+}
+
+// 导出完整嵌入数据的HTML文件
+function exportFullHtml(){
+    //读取当前整个页面html文本
+    const htmlRaw = document.documentElement.outerHTML;
+    //把data对象直接写死到导出文件初始data变量
+    const dataText = JSON.stringify(data,null,2);
+    //替换脚本里初始let data = {...}部分，替换为加载我们导出的数据
+    const replaceScript = `let editState = { areaIdx:null, btnIdx:null };
+let data = ${dataText};`;
+    //简单替换
+    let outHtml = htmlRaw;
+    //找到原始的 let editState...let data={...} 替换
+    const startTag = `let editState = { areaIdx:null, btnIdx:null };
+let data = {`;
+    //生成输出html，这个导出后的文件打开，不需要localStorage，直接使用内置data
+    outHtml = outHtml.replace(/let editState = \{ areaIdx:null, btnIdx:null \};\s*let data =[\s\S]*?\};/, replaceScript);
+    downloadFile(outHtml,"导航页_自定义.html","text/html");
+}
+
+function load() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+        const loaded = JSON.parse(raw);
+        data = Object.assign(data, loaded);
+        data.areas.forEach(ar=>{
+            if(typeof ar.layout.rowGap !== "number") ar.layout.rowGap = 14;
+            if(typeof ar.layout.colGap !== "number") ar.layout.colGap =14;
+        })
+    }
+}
+function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function applyPageTitle(){
+    data.pageTitle.text = document.getElementById("inputPageTitle").value.trim() || "🔗 多区域自定义导航页";
+    data.pageTitle.color = document.getElementById("colorPageTitle").value;
+    save(); renderPageTitle();
+}
+function renderPageTitle(){
+    const h1Dom = document.getElementById("pageMainTitle");
+    h1Dom.innerText = data.pageTitle.text;
+    h1Dom.style.color = data.pageTitle.color;
+    document.getElementById("inputPageTitle").value = data.pageTitle.text;
+    document.getElementById("colorPageTitle").value = data.pageTitle.color;
+}
+function moveAreaUp(idx){
+    if(idx <= 0) return;
+    const temp = data.areas[idx];
+    data.areas[idx] = data.areas[idx-1];
+    data.areas[idx-1] = temp;
+    save(); fullRender();
+}
+function moveAreaDown(idx){
+    if(idx >= data.areas.length -1) return;
+    const temp = data.areas[idx];
+    data.areas[idx] = data.areas[idx+1];
+    data.areas[idx+1] = temp;
+    save(); fullRender();
+}
+function moveBtnUp(areaIdx, btnIdx){
+    if(btnIdx <= 0) return;
+    const arr = data.areas[areaIdx].buttons;
+    const temp = arr[btnIdx];
+    arr[btnIdx] = arr[btnIdx-1];
+    arr[btnIdx-1] = temp;
+    save();fullRender();
+}
+function moveBtnDown(areaIdx, btnIdx){
+    const arr = data.areas[areaIdx].buttons;
+    if(btnIdx >= arr.length-1) return;
+    const temp = arr[btnIdx];
+    arr[btnIdx] = arr[btnIdx+1];
+    arr[btnIdx+1] = temp;
+    save();fullRender();
+}
+function openEditModal(areaIdx,btnIdx){
+    editState.areaIdx = areaIdx;
+    editState.btnIdx = btnIdx;
+    const btnData = data.areas[areaIdx].buttons[btnIdx];
+    document.getElementById("editBtnName").value = btnData.name;
+    document.getElementById("editBtnUrl").value = btnData.url;
+    document.getElementById("editModal").classList.remove("hidden");
+}
+function closeEditModal(){
+    editState.areaIdx=null; editState.btnIdx=null;
+    document.getElementById("editModal").classList.add("hidden");
+}
+function saveEditModal(){
+    const ai = editState.areaIdx;
+    const bi = editState.btnIdx;
+    if(ai===null||bi===null) return;
+    let newName = document.getElementById("editBtnName").value.trim();
+    let newUrl = document.getElementById("editBtnUrl").value.trim();
+    if(!newName||!newUrl){ alert("名称和网址不能为空"); return; }
+    if (!/^https?:\/\//i.test(newUrl)) newUrl="https://"+newUrl;
+    data.areas[ai].buttons[bi].name = newName;
+    data.areas[ai].buttons[bi].url = newUrl;
+    save(); closeEditModal(); fullRender();
+}
+function applyGlobalColor(){
+    data.globalColor.pageBg = document.getElementById("pageBg").value;
+    data.globalColor.btnBg = document.getElementById("btnBg").value;
+    data.globalColor.btnHoverBg = document.getElementById("btnHoverBg").value;
+    save(); renderAllColor();
+}
+function renderAllColor(){
+    document.body.style.background = data.globalColor.pageBg;
+    const allBtns = document.querySelectorAll(".nav-btn");
+    allBtns.forEach(b=>{
+        b.style.background = data.globalColor.btnBg;
+        b.onmouseover = ()=>{b.style.background=data.globalColor.btnHoverBg;};
+        b.onmouseout = ()=>{b.style.background=data.globalColor.btnBg;};
+    })
+}
+function renderOneArea(areaObj, areaIdx){
+    const wrapDom = document.getElementById(areaObj.id);
+    wrapDom.innerHTML = "";
+    if(data.showAreaName){
+        const titleDiv = document.createElement("div");
+        titleDiv.className = "area-display-name";
+        if(data.areaNameCenter) titleDiv.classList.add("area-name-center");
+        titleDiv.textContent = areaObj.name;
+        wrapDom.appendChild(titleDiv);
+    }
+    const gridDom = document.createElement("div");
+    gridDom.className = "btn-grid";
+    if(areaObj.layout.center) gridDom.classList.add("center-on");
+    else gridDom.classList.add("center-off");
+    gridDom.style.gridTemplateColumns = `repeat(${areaObj.layout.cols}, ${areaObj.layout.btnWidth}px)`;
+    gridDom.style.rowGap = `${areaObj.layout.rowGap}px`;
+    gridDom.style.columnGap = `${areaObj.layout.colGap}px`;
+    wrapDom.appendChild(gridDom);
+    if (areaObj.buttons.length === 0) {
+        const tip = document.createElement("div");
+        tip.className = "empty-tip";
+        tip.textContent = `${areaObj.name}暂无按钮，请在设置中添加。`;
+        gridDom.appendChild(tip);
+        return;
+    }
+    areaObj.buttons.forEach((item, btnIndex) => {
+        const itemWrap = document.createElement("div");
+        itemWrap.className = "item-wrap";
+        const a = document.createElement("a");
+        a.className = "nav-btn";
+        a.style.width = `${areaObj.layout.btnWidth}px`;
+        a.style.height = `${areaObj.layout.btnHeight}px`;
+        a.href = item.url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = item.name;
+        a.style.background = data.globalColor.btnBg;
+        a.onmouseover = ()=>{a.style.background=data.globalColor.btnHoverBg;};
+        a.onmouseout = ()=>{a.style.background=data.globalColor.btnBg;};
+        const ctrlRow = document.createElement("div");
+        ctrlRow.className = "btn-control-row";
+        const btnUp = document.createElement("button");
+        btnUp.className = "btn-move-sm btn-up";
+        if(!data.delBtnVisible) btnUp.classList.add("hide-del");
+        btnUp.textContent = "↑";
+        btnUp.onclick = ()=> moveBtnUp(areaIdx, btnIndex);
+        const btnDown = document.createElement("button");
+        btnDown.className = "btn-move-sm btn-down";
+        if(!data.delBtnVisible) btnDown.classList.add("hide-del");
+        btnDown.textContent = "↓";
+        btnDown.onclick = ()=> moveBtnDown(areaIdx, btnIndex);
+        const btnEdit = document.createElement("button");
+        btnEdit.className = "btn-edit-sm btn-edit";
+        if(!data.delBtnVisible) btnEdit.classList.add("hide-del");
+        btnEdit.textContent = "编辑";
+        btnEdit.onclick = ()=> openEditModal(areaIdx,btnIndex);
+        const del = document.createElement("button");
+        del.className = "danger del-btn";
+        if(!data.delBtnVisible) del.classList.add("hide-del");
+        del.textContent = "删除";
+        del.onclick = () => {
+            areaObj.buttons.splice(btnIndex, 1);
+            save(); fullRender();
+        };
+        ctrlRow.appendChild(btnUp);
+        ctrlRow.appendChild(btnDown);
+        ctrlRow.appendChild(btnEdit);
+        ctrlRow.appendChild(del);
+        itemWrap.appendChild(a);
+        itemWrap.appendChild(ctrlRow);
+        gridDom.appendChild(itemWrap);
+    });
+}
+function fullRender(){
+    const renderWrap = document.getElementById("pageRenderWrap");
+    renderWrap.innerHTML = "";
+    data.areas.forEach(a=>{
+        const div = document.createElement("div");
+        div.id = a.id;
+        renderWrap.appendChild(div);
+    });
+    data.areas.forEach((area,idx)=>renderOneArea(area, idx));
+    const cfgWrap = document.getElementById("allAreaConfigWrap");
+    cfgWrap.innerHTML = "";
+    data.areas.forEach((area,idx)=>{
+        const block = document.createElement("div");
+        block.className = "area-config-block";
+        block.innerHTML = `
+        <div class="section-title">
+            <input type="text" class="area-name-input" data-idx="${idx}" value="${area.name}" placeholder="区域名称">
+        </div>
+        <div class="config-row">
+            <button class="move-btn move-up" data-idx="${idx}">⬆️上移</button>
+            <button class="move-btn move-down" data-idx="${idx}">⬇️下移</button>
+            <label>一行数量：</label>
+            <input type="number" data-idx="${idx}" class="inp-cols" min="1" max="16" value="${area.layout.cols}" />
+            <label>按钮宽度：</label>
+            <input type="number" data-idx="${idx}" class="inp-btnw" min="60" max="500" value="${area.layout.btnWidth}" />
+            <label>按钮高度：</label>
+            <input type="number" data-idx="${idx}" class="inp-btnh" min="40" max="220" value="${area.layout.btnHeight}" />
+            <label>按钮上下间距：</label>
+            <input type="number" data-idx="${idx}" class="inp-rowgap" min="0" max="80" value="${area.layout.rowGap}" />
+            <label>按钮左右间距：</label>
+            <input type="number" data-idx="${idx}" class="inp-colgap" min="0" max="80" value="${area.layout.colGap}" />
+            <label>整体居中</label>
+            <input type="checkbox" data-idx="${idx}" class="inp-center" ${area.layout.center?"checked":""} />
+            <button data-idx="${idx}" class="applyLayoutBtn">应用布局</button>
+            ${data.areas.length>1?`<button data-idx="${idx}" class="danger delAreaBtn">删除此区域</button>`:""}
+        </div>
+        <div class="config-row">
+            <input type="text" data-idx="${idx}" class="inp-name" placeholder="按钮名称" />
+            <input type="text" data-idx="${idx}" class="inp-url" placeholder="网址 https://xxx" style="width:220px" />
+            <button data-idx="${idx}" class="addBtnToArea">添加按钮</button>
+        </div>
+        `;
+        cfgWrap.appendChild(block);
+    });
+    document.querySelectorAll(".move-up").forEach(btn=>{
+        btn.onclick = ()=>{ const i = Number(btn.dataset.idx); moveAreaUp(i); }
+    });
+    document.querySelectorAll(".move-down").forEach(btn=>{
+        btn.onclick = ()=>{ const i = Number(btn.dataset.idx); moveAreaDown(i); }
+    });
+    document.querySelectorAll(".area-name-input").forEach(input=>{
+        input.onblur = ()=>{
+            const i = Number(input.dataset.idx);
+            data.areas[i].name = input.value.trim() || "未命名区域";
+            save();fullRender();
+        }
+    })
+    document.querySelectorAll(".inp-cols").forEach(input=>{
+        input.onchange = function(){
+            const idx = Number(this.dataset.idx);
+            let v = parseInt(this.value);
+            data.areas[idx].layout.cols = Math.max(1,Math.min(16,isNaN(v)?4:v));
+            save();
+        }
+    });
+    document.querySelectorAll(".inp-btnw").forEach(input=>{
+        input.onchange = function(){
+            const idx = Number(this.dataset.idx);
+            let v = parseInt(this.value);
+            data.areas[idx].layout.btnWidth = Math.max(60,Math.min(500,isNaN(v)?180:v));
+            save();
+        }
+    });
+    document.querySelectorAll(".inp-btnh").forEach(input=>{
+        input.onchange = function(){
+            const idx = Number(this.dataset.idx);
+            let v = parseInt(this.value);
+            data.areas[idx].layout.btnHeight = Math.max(40,Math.min(220,isNaN(v)?80:v));
+            save();
+        }
+    });
+    document.querySelectorAll(".inp-rowgap").forEach(input=>{
+        input.onchange = function(){
+            const idx = Number(this.dataset.idx);
+            let v = parseInt(this.value);
+            data.areas[idx].layout.rowGap = Math.max(0,Math.min(80,isNaN(v)?14:v));
+            save();
+        }
+    });
+    document.querySelectorAll(".inp-colgap").forEach(input=>{
+        input.onchange = function(){
+            const idx = Number(this.dataset.idx);
+            let v = parseInt(this.value);
+            data.areas[idx].layout.colGap = Math.max(0,Math.min(80,isNaN(v)?14:v));
+            save();
+        }
+    });
+    document.querySelectorAll(".inp-center").forEach(input=>{
+        input.onchange = function(){
+            const idx = Number(this.dataset.idx);
+            data.areas[idx].layout.center = this.checked;
+            save();
+        }
+    });
+    document.querySelectorAll(".applyLayoutBtn").forEach(btn=>{
+        btn.onclick=()=>{ save(); fullRender(); }
+    });
+    document.querySelectorAll(".addBtnToArea").forEach(btn=>{
+        btn.onclick=()=>{
+            const i = Number(btn.dataset.idx);
+            const ar = data.areas[i];
+            const nameEl = document.querySelector(`.inp-name[data-idx="${i}"]`);
+            const urlEl = document.querySelector(`.inp-url[data-idx="${i}"]`);
+            const name = nameEl.value.trim();
+            let url = urlEl.value.trim();
+            if(!name||!url){alert("填写名称和网址");return;}
+            if (!/^https?:\/\//i.test(url)) url="https://"+url;
+            ar.buttons.push({name,url});
+            nameEl.value="";urlEl.value="";
+            save();fullRender();
+        }
+    });
+    document.querySelectorAll(".delAreaBtn").forEach(btn=>{
+        btn.onclick=()=>{
+            const i = Number(btn.dataset.idx);
+            if(data.areas.length<=1)return;
+            data.areas.splice(i,1);
+            save();fullRender();
+        }
+    });
+    renderAllColor();
+}
+function addNewArea(){
+    const newId = "area_"+Date.now();
+    const newIdx = data.areas.length;
+    const ch = CHN_NUM[newIdx] ?? (newIdx+1);
+    data.areas.push({
+        id:newId,
+        name:`区域${ch}`,
+        layout:{cols:4,center:true,btnWidth:180,btnHeight:80,rowGap:14,colGap:14},
+        buttons:[]
+    });
+    save();fullRender();
+}
+function toggleConfig() {
+    data.configVisible = !data.configVisible;
+    document.getElementById("configPanel").classList.toggle("hidden", !data.configVisible);
+    save();
+}
+function toggleDelButton() {
+    data.delBtnVisible = !data.delBtnVisible;
+    save();fullRender();
+}
+function init() {
+    load();
+    document.getElementById("pageBg").value = data.globalColor.pageBg;
+    document.getElementById("btnBg").value = data.globalColor.btnBg;
+    document.getElementById("btnHoverBg").value = data.globalColor.btnHoverBg;
+    document.getElementById("showAreaName").checked = data.showAreaName;
+    document.getElementById("areaNameCenter").checked = data.areaNameCenter;
+    renderPageTitle();
+    document.getElementById("applyPageTitleBtn").onclick = applyPageTitle;
+    document.getElementById("modalCancel").onclick = closeEditModal;
+    document.getElementById("modalSave").onclick = saveEditModal;
+    document.getElementById("showAreaName").onchange = ()=>{
+        data.showAreaName = document.getElementById("showAreaName").checked;
+        save();fullRender();
+    }
+    document.getElementById("areaNameCenter").onchange = ()=>{
+        data.areaNameCenter = document.getElementById("areaNameCenter").checked;
+        save();fullRender();
+    }
+    document.getElementById("configPanel").classList.toggle("hidden", !data.configVisible);
+    document.getElementById("toggleConfigBtn").addEventListener("click", toggleConfig);
+    document.getElementById("toggleDelBtn").addEventListener("click", toggleDelButton);
+    document.getElementById("addNewAreaBtn").addEventListener("click", addNewArea);
+
+    //导出导入按钮事件
+    document.getElementById("exportJsonBtn").onclick = exportJson;
+    document.getElementById("importJsonBtn").onclick = function(){
+        document.getElementById("fileImportInput").click();
+    };
+    document.getElementById("fileImportInput").onchange = function(e){
+        if(e.target.files.length>0){
+            importJson(e.target.files[0]);
+            this.value = '';
+        }
+    }
+    document.getElementById("exportFullHtmlBtn").onclick = exportFullHtml;
+
+    fullRender();
+}
+init();
+</script>
+
+
+</body></html>
